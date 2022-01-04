@@ -7,7 +7,6 @@ use tracing::{debug, error, info};
 use drive::{AliyunDrive, DriveConfig};
 use vfs::AliyunDriveFileSystem;
 
-mod cache;
 mod drive;
 mod vfs;
 
@@ -43,8 +42,7 @@ struct Opt {
     read_only: bool,
 }
 
-#[tokio::main(flavor = "multi_thread")]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     #[cfg(feature = "native-tls-vendored")]
     openssl_probe::init_ssl_cert_env_vars();
 
@@ -53,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     }
     tracing_subscriber::fmt::init();
 
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     let (drive_config, no_trash) = if let Some(domain_id) = opt.domain_id {
         (
             DriveConfig {
@@ -78,11 +76,9 @@ async fn main() -> anyhow::Result<()> {
             opt.no_trash,
         )
     };
-    let drive = AliyunDrive::new(drive_config, opt.refresh_token)
-        .await
-        .map_err(|_| {
-            io::Error::new(io::ErrorKind::Other, "initialize aliyundrive client failed")
-        })?;
+    let drive = AliyunDrive::new(drive_config, opt.refresh_token).map_err(|_| {
+        io::Error::new(io::ErrorKind::Other, "initialize aliyundrive client failed")
+    })?;
 
     let vfs = AliyunDriveFileSystem;
     fuser::mount2(vfs, opt.path, &[MountOption::AutoUnmount])?;

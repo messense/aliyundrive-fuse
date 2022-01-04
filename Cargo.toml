@@ -17,22 +17,21 @@ clap = { version = "3.0.1", features = ["derive", "env", "wrap_help"] }
 dashmap = "5.0.0"
 fuser = "0.9.1"
 futures-util = "0.3"
-moka = { version = "0.6.3", default-features = false, features = ["future"] }
+oneshot = { version = "0.1.3", default-features = false, features = ["std"] }
 openssl-probe = { version = "0.1.4", optional = true }
-reqwest = { version = "0.11.7", default-features = false, features = ["json", "gzip"] }
+parking_lot = "0.11.2"
+reqwest = { version = "0.11.7", default-features = false, features = ["json", "gzip", "blocking"] }
 serde = { version = "1.0.127", features = ["derive"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1.10.0", features = ["rt-multi-thread", "io-util", "net", "time", "sync", "macros", "parking_lot", "fs"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "local-time"] }
 url = "2.2.2"
 
 [features]
-default = ["rustls-tls", "atomic64"]
+default = ["rustls-tls"]
 rustls-tls = ["reqwest/rustls-tls"]
 native-tls = ["reqwest/native-tls"]
 native-tls-vendored = ["reqwest/native-tls-vendored", "openssl-probe"]
-atomic64 = ["moka/atomic64"]
 
 [profile.release]
 lto = true
