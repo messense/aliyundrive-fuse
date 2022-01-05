@@ -23,12 +23,16 @@ pub enum Error {
     NoEntry,
     ParentNotFound,
     ChildNotFound,
+    ApiCallFailed,
 }
 
-impl Into<libc::c_int> for Error {
-    fn into(self) -> libc::c_int {
-        match self {
-            Error::NoEntry | Error::ParentNotFound | Error::ChildNotFound => libc::ENOENT,
+impl From<Error> for libc::c_int {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::NoEntry => libc::ENOENT,
+            Error::ParentNotFound => libc::ENOENT,
+            Error::ChildNotFound => libc::ENOENT,
+            Error::ApiCallFailed => libc::EIO,
         }
     }
 }
@@ -76,7 +80,7 @@ impl AliyunDriveFileSystem {
 
     fn init(&mut self) -> Result<(), Error> {
         let mut root_file = AliyunFile::new_root();
-        let (used_size, _) = self.drive.get_quota().unwrap();
+        let (used_size, _) = self.drive.get_quota().map_err(|_| Error::ApiCallFailed)?;
         root_file.size = used_size;
         let root_inode = Inode::new(0);
         self.inodes.insert(FUSE_ROOT_ID, root_inode);
@@ -102,7 +106,10 @@ impl AliyunDriveFileSystem {
 
         let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
         let parent_file_id = &file.id;
-        let files = self.drive.list_all(parent_file_id).unwrap();
+        let files = self
+            .drive
+            .list_all(parent_file_id)
+            .map_err(|_| Error::ApiCallFailed)?;
         for file in &files {
             let new_inode = self.next_inode();
             inode.add_child(OsString::from(file.name.clone()), new_inode);
@@ -121,12 +128,15 @@ impl AliyunDriveFileSystem {
         if offset >= file.size as i64 {
             return Ok(Bytes::new());
         }
-        let download_url = self.drive.get_download_url(&file.id).unwrap();
+        let download_url = self
+            .drive
+            .get_download_url(&file.id)
+            .map_err(|_| Error::ApiCallFailed)?;
         let size = std::cmp::min(size, file.size.saturating_sub(offset as u64) as u32);
         let data = self
             .drive
             .download(&download_url, offset as _, size as _)
-            .unwrap();
+            .map_err(|_| Error::ApiCallFailed)?;
         Ok(data)
     }
 }
