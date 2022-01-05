@@ -15,7 +15,6 @@ dependencies = [
  "anyhow",
  "bytes",
  "clap",
- "dashmap",
  "fuser",
  "futures-util",
  "libc",
@@ -171,17 +170,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "738c290dfaea84fc1ca15ad9c168d083b05a714e1efddd8edaab678dc28d2836"
 dependencies = [
  "cfg-if",
-]
-
-[[package]]
-name = "dashmap"
-version = "5.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b799062aaf67eb976af3bdca031ee6f846d2f0a5710ddbb0d2efee33f3cc4760"
-dependencies = [
- "cfg-if",
- "num_cpus",
- "parking_lot",
 ]
 
 [[package]]
