@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
@@ -214,7 +214,7 @@ impl AliyunDrive {
 
     fn access_token(&self) -> Result<String> {
         let cred = self.credentials.read();
-        Ok(cred.access_token.clone().context("missing access_token")?)
+        cred.access_token.clone().context("missing access_token")
     }
 
     fn drive_id(&self) -> Result<&str> {
@@ -286,29 +286,6 @@ impl AliyunDrive {
         }
     }
 
-    pub fn get_file(&self, file_id: &str) -> Result<Option<AliyunFile>> {
-        let drive_id = self.drive_id()?;
-        debug!(drive_id = %drive_id, file_id = %file_id, "get file");
-        let req = GetFileRequest { drive_id, file_id };
-        let res: Result<AliyunFile> = self
-            .request(format!("{}/v2/file/get", self.config.api_base_url), &req)
-            .and_then(|res| res.context("expect response"));
-        match res {
-            Ok(file) => Ok(Some(file)),
-            Err(err) => {
-                if let Some(req_err) = err.downcast_ref::<reqwest::Error>() {
-                    if matches!(req_err.status(), Some(StatusCode::NOT_FOUND)) {
-                        Ok(None)
-                    } else {
-                        Err(err)
-                    }
-                } else {
-                    Err(err)
-                }
-            }
-        }
-    }
-
     pub fn list_all(&self, parent_file_id: &str) -> Result<Vec<AliyunFile>> {
         let mut files = Vec::new();
         let mut marker = None;
@@ -371,191 +348,6 @@ impl AliyunDrive {
             )?
             .context("expect response")?;
         Ok(res.url)
-    }
-
-    fn trash(&self, file_id: &str) -> Result<()> {
-        debug!(file_id = %file_id, "trash file");
-        let req = TrashRequest {
-            drive_id: self.drive_id()?,
-            file_id,
-        };
-        let _res: Option<serde::de::IgnoredAny> = self.request(
-            format!("{}/v2/recyclebin/trash", self.config.api_base_url),
-            &req,
-        )?;
-        Ok(())
-    }
-
-    fn delete_file(&self, file_id: &str) -> Result<()> {
-        debug!(file_id = %file_id, "delete file");
-        let req = TrashRequest {
-            drive_id: self.drive_id()?,
-            file_id,
-        };
-        let _res: Option<serde::de::IgnoredAny> =
-            self.request(format!("{}/v2/file/delete", self.config.api_base_url), &req)?;
-        Ok(())
-    }
-
-    pub fn remove_file(&self, file_id: &str, trash: bool) -> Result<()> {
-        if trash {
-            self.trash(file_id)?;
-        } else {
-            self.delete_file(file_id)?;
-        }
-        Ok(())
-    }
-
-    pub fn create_folder(&self, parent_file_id: &str, name: &str) -> Result<()> {
-        debug!(parent_file_id = %parent_file_id, name = %name, "create folder");
-        let req = CreateFolderRequest {
-            check_name_mode: "refuse",
-            drive_id: self.drive_id()?,
-            name,
-            parent_file_id,
-            r#type: "folder",
-        };
-        let _res: Option<serde::de::IgnoredAny> =
-            self.request(format!("{}/v2/file/create", self.config.api_base_url), &req)?;
-        Ok(())
-    }
-
-    pub fn rename_file(&self, file_id: &str, name: &str) -> Result<()> {
-        debug!(file_id = %file_id, name = %name, "rename file");
-        let req = RenameFileRequest {
-            check_name_mode: "refuse",
-            drive_id: self.drive_id()?,
-            file_id,
-            name,
-        };
-        let _res: Option<serde::de::IgnoredAny> =
-            self.request(format!("{}/v2/file/update", self.config.api_base_url), &req)?;
-        Ok(())
-    }
-
-    pub fn move_file(
-        &self,
-        file_id: &str,
-        to_parent_file_id: &str,
-        new_name: Option<&str>,
-    ) -> Result<()> {
-        debug!(file_id = %file_id, to_parent_file_id = %to_parent_file_id, "move file");
-        let drive_id = self.drive_id()?;
-        let req = MoveFileRequest {
-            drive_id,
-            file_id,
-            to_drive_id: drive_id,
-            to_parent_file_id,
-            new_name,
-        };
-        let _res: Option<serde::de::IgnoredAny> =
-            self.request(format!("{}/v2/file/move", self.config.api_base_url), &req)?;
-        Ok(())
-    }
-
-    pub fn copy_file(
-        &self,
-        file_id: &str,
-        to_parent_file_id: &str,
-        new_name: Option<&str>,
-    ) -> Result<()> {
-        debug!(file_id = %file_id, to_parent_file_id = %to_parent_file_id, "copy file");
-        let drive_id = self.drive_id()?;
-        let req = CopyFileRequest {
-            drive_id,
-            file_id,
-            to_parent_file_id,
-            new_name,
-        };
-        let _res: Option<serde::de::IgnoredAny> =
-            self.request(format!("{}/v2/file/copy", self.config.api_base_url), &req)?;
-        Ok(())
-    }
-
-    pub fn create_file_with_proof(
-        &self,
-        name: &str,
-        parent_file_id: &str,
-        size: u64,
-        chunk_count: u64,
-    ) -> Result<CreateFileWithProofResponse> {
-        debug!(name = %name, parent_file_id = %parent_file_id, size = size, "create file with proof");
-        let drive_id = self.drive_id()?;
-        let part_info_list = (1..=chunk_count)
-            .map(|part_number| UploadPartInfo {
-                part_number,
-                upload_url: String::new(),
-            })
-            .collect();
-        let req = CreateFileWithProofRequest {
-            check_name_mode: "refuse",
-            content_hash: "",
-            content_hash_name: "none",
-            drive_id,
-            name,
-            parent_file_id,
-            proof_code: "",
-            proof_version: "v1",
-            size,
-            part_info_list,
-            r#type: "file",
-        };
-        let res: CreateFileWithProofResponse = self
-            .request(
-                format!("{}/v2/file/create_with_proof", self.config.api_base_url),
-                &req,
-            )?
-            .context("expect response")?;
-        Ok(res)
-    }
-
-    pub fn complete_file_upload(&self, file_id: &str, upload_id: &str) -> Result<()> {
-        debug!(file_id = %file_id, upload_id = %upload_id, "complete file upload");
-        let drive_id = self.drive_id()?;
-        let req = CompleteUploadRequest {
-            drive_id,
-            file_id,
-            upload_id,
-        };
-        let _res: Option<serde::de::IgnoredAny> = self.request(
-            format!("{}/v2/file/complete", self.config.api_base_url),
-            &req,
-        )?;
-        Ok(())
-    }
-
-    pub fn upload(&self, url: &str, body: Bytes) -> Result<()> {
-        self.client.put(url).body(body).send()?.error_for_status()?;
-        Ok(())
-    }
-
-    pub fn get_upload_url(
-        &self,
-        file_id: &str,
-        upload_id: &str,
-        chunk_count: u64,
-    ) -> Result<Vec<UploadPartInfo>> {
-        debug!(file_id = %file_id, upload_id = %upload_id, "get upload url");
-        let drive_id = self.drive_id()?;
-        let part_info_list = (1..=chunk_count)
-            .map(|part_number| UploadPartInfo {
-                part_number,
-                upload_url: String::new(),
-            })
-            .collect();
-        let req = GetUploadUrlRequest {
-            drive_id,
-            file_id,
-            upload_id,
-            part_info_list,
-        };
-        let res: CreateFileWithProofResponse = self
-            .request(
-                format!("{}/v2/file/get_upload_url", self.config.api_base_url),
-                &req,
-            )?
-            .context("expect response")?;
-        Ok(res.part_info_list)
     }
 
     pub fn get_quota(&self) -> Result<(u64, u64)> {

@@ -37,12 +37,6 @@ pub struct ListFileResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct GetFileRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct GetFileDownloadUrlRequest<'a> {
     pub drive_id: &'a str,
     pub file_id: &'a str,
@@ -55,98 +49,6 @@ pub struct GetFileDownloadUrlResponse {
     pub expiration: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct TrashRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct DeleteFileRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct CreateFolderRequest<'a> {
-    pub check_name_mode: &'a str,
-    pub drive_id: &'a str,
-    pub name: &'a str,
-    pub parent_file_id: &'a str,
-    pub r#type: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct RenameFileRequest<'a> {
-    pub check_name_mode: &'a str,
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-    pub name: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct MoveFileRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-    pub to_drive_id: &'a str,
-    pub to_parent_file_id: &'a str,
-    pub new_name: Option<&'a str>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct CopyFileRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-    pub to_parent_file_id: &'a str,
-    pub new_name: Option<&'a str>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UploadPartInfo {
-    pub part_number: u64,
-    #[serde(skip_serializing_if = "String::is_empty")]
-    pub upload_url: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct CreateFileWithProofRequest<'a> {
-    pub check_name_mode: &'a str,
-    pub content_hash: &'a str,
-    pub content_hash_name: &'a str,
-    pub drive_id: &'a str,
-    pub name: &'a str,
-    pub parent_file_id: &'a str,
-    pub proof_code: &'a str,
-    pub proof_version: &'a str,
-    pub size: u64,
-    pub part_info_list: Vec<UploadPartInfo>,
-    pub r#type: &'a str,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct CreateFileWithProofResponse {
-    #[serde(default)]
-    pub part_info_list: Vec<UploadPartInfo>,
-    pub file_id: String,
-    pub upload_id: String,
-    pub file_name: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct CompleteUploadRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-    pub upload_id: &'a str,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct GetUploadUrlRequest<'a> {
-    pub drive_id: &'a str,
-    pub file_id: &'a str,
-    pub upload_id: &'a str,
-    pub part_info_list: Vec<UploadPartInfo>,
-}
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetDriveResponse {
     pub total_size: u64,
@@ -155,12 +57,6 @@ pub struct GetDriveResponse {
 
 #[derive(Debug, Clone)]
 pub struct DateTime(SystemTime);
-
-impl DateTime {
-    pub fn new(st: SystemTime) -> Self {
-        Self(st)
-    }
-}
 
 impl<'a> Deserialize<'a> for DateTime {
     fn deserialize<D: Deserializer<'a>>(deserializer: D) -> Result<Self, D::Error> {

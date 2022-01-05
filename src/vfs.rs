@@ -6,6 +6,7 @@ use std::path::Path;
 use std::time::UNIX_EPOCH;
 use std::{collections::BTreeMap, time::Duration};
 
+use bytes::Bytes;
 use fuser::consts::FOPEN_DIRECT_IO;
 use fuser::{
     FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, ReplyOpen,
@@ -17,17 +18,30 @@ use crate::drive::{AliyunDrive, AliyunFile};
 
 const TTL: Duration = Duration::from_secs(1);
 
+#[derive(Debug, Clone, Copy)]
+pub enum Error {
+    NoEntry,
+    ParentNotFound,
+    ChildNotFound,
+}
+
+impl Into<libc::c_int> for Error {
+    fn into(self) -> libc::c_int {
+        match self {
+            Error::NoEntry | Error::ParentNotFound | Error::ChildNotFound => libc::ENOENT,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Inode {
-    name: OsString,
     children: BTreeMap<OsString, u64>,
     parent: u64,
 }
 
 impl Inode {
-    fn new(name: OsString, parent: u64) -> Self {
+    fn new(parent: u64) -> Self {
         Self {
-            name,
             children: BTreeMap::new(),
             parent,
         }
@@ -59,6 +73,62 @@ impl AliyunDriveFileSystem {
         self.next_inode += 1;
         self.next_inode
     }
+
+    fn init(&mut self) -> Result<(), Error> {
+        let mut root_file = AliyunFile::new_root();
+        let (used_size, _) = self.drive.get_quota().unwrap();
+        root_file.size = used_size;
+        let root_inode = Inode::new(0);
+        self.inodes.insert(FUSE_ROOT_ID, root_inode);
+        self.files.insert(FUSE_ROOT_ID, root_file);
+        Ok(())
+    }
+
+    fn lookup(&mut self, parent: u64, name: &OsStr) -> Result<FileAttr, Error> {
+        let parent_inode = self.inodes.get(&parent).ok_or(Error::ParentNotFound)?;
+        let inode = parent_inode
+            .children
+            .get(name)
+            .ok_or(Error::ChildNotFound)?;
+        let file = self.files.get(inode).ok_or(Error::NoEntry)?;
+        Ok(file.to_file_attr(*inode))
+    }
+
+    fn readdir(&mut self, ino: u64) -> Result<Vec<(u64, FileType, String)>, Error> {
+        let mut entries = vec![(ino, FileType::Directory, ".".to_string())];
+
+        let mut inode = self.inodes.get(&ino).ok_or(Error::NoEntry)?.clone();
+        entries.push((inode.parent, FileType::Directory, String::from("..")));
+
+        let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
+        let parent_file_id = &file.id;
+        let files = self.drive.list_all(parent_file_id).unwrap();
+        for file in &files {
+            let new_inode = self.next_inode();
+            inode.add_child(OsString::from(file.name.clone()), new_inode);
+            self.files.insert(new_inode, file.clone());
+            self.inodes
+                .entry(new_inode)
+                .or_insert_with(|| Inode::new(ino));
+            entries.push((new_inode, file.r#type.into(), file.name.clone()));
+        }
+        self.inodes.insert(ino, inode);
+        Ok(entries)
+    }
+
+    fn read(&mut self, ino: u64, offset: i64, size: u32) -> Result<Bytes, Error> {
+        let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
+        if offset >= file.size as i64 {
+            return Ok(Bytes::new());
+        }
+        let download_url = self.drive.get_download_url(&file.id).unwrap();
+        let size = std::cmp::min(size, file.size.saturating_sub(offset as u64) as u32);
+        let data = self
+            .drive
+            .download(&download_url, offset as _, size as _)
+            .unwrap();
+        Ok(data)
+    }
 }
 
 impl Filesystem for AliyunDriveFileSystem {
@@ -67,20 +137,19 @@ impl Filesystem for AliyunDriveFileSystem {
         _req: &Request<'_>,
         _config: &mut fuser::KernelConfig,
     ) -> Result<(), libc::c_int> {
-        let root_file = AliyunFile::new_root();
-        let root_inode = Inode::new(OsString::from(root_file.name.clone()), FUSE_ROOT_ID);
-        self.inodes.insert(FUSE_ROOT_ID, root_inode);
-        self.files.insert(FUSE_ROOT_ID, root_file);
+        if let Err(e) = self.init() {
+            return Err(e.into());
+        }
         Ok(())
     }
 
     fn lookup(&mut self, _req: &Request<'_>, parent: u64, name: &OsStr, reply: ReplyEntry) {
         let dirname = Path::new(name);
         debug!(parent = parent, name = %dirname.display(), "lookup");
-        let parent_inode = self.inodes.get(&parent).unwrap();
-        let inode = parent_inode.children.get(name).unwrap();
-        let file = self.files.get(&inode).unwrap();
-        reply.entry(&TTL, &file.to_file_attr(*inode), 0);
+        match self.lookup(parent, name) {
+            Ok(attr) => reply.entry(&TTL, &attr, 0),
+            Err(e) => reply.error(e.into()),
+        }
     }
 
     fn getattr(&mut self, _req: &Request<'_>, ino: u64, reply: ReplyAttr) {
@@ -105,33 +174,22 @@ impl Filesystem for AliyunDriveFileSystem {
         mut reply: ReplyDirectory,
     ) {
         debug!(inode = ino, offset = offset, "readdir");
-        let mut inode = self.inodes.get(&ino).unwrap().clone();
-        let file = self.files.get(&ino).unwrap();
-        let parent_file_id = &file.id;
-        if offset == 0 {
-            let files = self.drive.list_all(parent_file_id).unwrap();
-            for file in &files {
-                let new_inode = self.next_inode();
-                inode.add_child(OsString::from(file.name.clone()), new_inode);
-                self.files.insert(new_inode, file.clone());
-                self.inodes
-                    .entry(new_inode)
-                    .or_insert_with(|| Inode::new(OsString::from(file.name.clone()), ino));
-            }
-            self.inodes.insert(ino, inode);
-            for (index, file) in files.iter().skip(offset as usize).enumerate() {
-                let buffer_full = reply.add(
-                    ino,
-                    offset + index as i64 + 1,
-                    file.r#type.into(),
-                    &file.name,
-                );
-                if buffer_full {
-                    break;
+        match self.readdir(ino) {
+            Ok(entries) => {
+                // Offset of 0 means no offset.
+                // Non-zero offset means the passed offset has already been seen,
+                // and we should start after it.
+                let to_skip = if offset == 0 { 0 } else { offset + 1 } as usize;
+                for (i, (ino, kind, name)) in entries.into_iter().enumerate().skip(to_skip) {
+                    let buffer_full = reply.add(ino, i as i64, kind, name);
+                    if buffer_full {
+                        break;
+                    }
                 }
+                reply.ok();
             }
+            Err(e) => reply.error(e.into()),
         }
-        reply.ok();
     }
 
     fn read(
@@ -146,18 +204,10 @@ impl Filesystem for AliyunDriveFileSystem {
         reply: ReplyData,
     ) {
         debug!(inode = ino, offset = offset, size = size, "read");
-        let file = self.files.get(&ino).unwrap();
-        if offset >= file.size as i64 {
-            reply.data(&[]);
-            return;
+        match self.read(ino, offset, size) {
+            Ok(data) => reply.data(&data),
+            Err(e) => reply.error(e.into()),
         }
-        let download_url = self.drive.get_download_url(&file.id).unwrap();
-        let size = std::cmp::min(size, file.size.saturating_sub(offset as u64) as u32);
-        let data = self
-            .drive
-            .download(&download_url, offset as _, size as _)
-            .unwrap();
-        reply.data(&data);
     }
 }
 
