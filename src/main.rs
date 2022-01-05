@@ -71,9 +71,12 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     let vfs = AliyunDriveFileSystem::new(drive);
-    let mut mount_options = vec![MountOption::AutoUnmount];
+    let mut mount_options = vec![MountOption::AutoUnmount, MountOption::NoAtime];
     if opt.read_only {
         mount_options.push(MountOption::RO);
+    }
+    if cfg!(target_os = "macos") {
+        mount_options.push(MountOption::CUSTOM("-o local".to_string()));
     }
     fuser::mount2(vfs, opt.path, &mount_options)?;
     Ok(())

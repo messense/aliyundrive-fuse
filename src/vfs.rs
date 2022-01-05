@@ -7,16 +7,16 @@ use std::time::UNIX_EPOCH;
 use std::{collections::BTreeMap, time::Duration};
 
 use bytes::Bytes;
-use fuser::consts::FOPEN_DIRECT_IO;
 use fuser::{
-    FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, ReplyOpen,
-    Request, FUSE_ROOT_ID,
+    FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
+    FUSE_ROOT_ID,
 };
 use tracing::debug;
 
 use crate::drive::{AliyunDrive, AliyunFile};
 
 const TTL: Duration = Duration::from_secs(1);
+const BLOCK_SIZE: u64 = 10 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Error {
@@ -171,10 +171,6 @@ impl Filesystem for AliyunDriveFileSystem {
         }
     }
 
-    fn open(&mut self, _req: &Request<'_>, _ino: u64, _flags: i32, reply: ReplyOpen) {
-        reply.opened(0, FOPEN_DIRECT_IO);
-    }
-
     fn readdir(
         &mut self,
         _req: &Request<'_>,
@@ -243,10 +239,12 @@ impl AliyunFile {
         let nlink = if ino == FUSE_ROOT_ID { 2 } else { 1 };
         let uid = unsafe { libc::getuid() };
         let gid = unsafe { libc::getgid() };
+        let blksize = BLOCK_SIZE;
+        let blocks = self.size / blksize + 1;
         FileAttr {
             ino,
             size: self.size,
-            blocks: 0,
+            blocks,
             atime: UNIX_EPOCH,
             mtime: *self.updated_at,
             ctime: *self.created_at,
@@ -257,7 +255,7 @@ impl AliyunFile {
             uid,
             gid,
             rdev: 0,
-            blksize: 512,
+            blksize: blksize as u32,
             flags: 0,
         }
     }
