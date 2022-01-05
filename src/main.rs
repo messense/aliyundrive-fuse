@@ -2,7 +2,6 @@ use std::{env, io, path::PathBuf};
 
 use clap::Parser;
 use fuser::MountOption;
-use tracing::{debug, error, info};
 
 use drive::{AliyunDrive, DriveConfig};
 use vfs::AliyunDriveFileSystem;
@@ -19,15 +18,6 @@ struct Opt {
     /// Aliyun drive refresh token
     #[clap(short, long, env = "REFRESH_TOKEN")]
     refresh_token: String,
-    /// Directory entries cache size
-    #[clap(long, default_value = "1000")]
-    cache_size: usize,
-    /// Directory entries cache expiration time in seconds
-    #[clap(long, default_value = "600")]
-    cache_ttl: u64,
-    /// Root directory path
-    #[clap(long, default_value = "/")]
-    root: String,
     /// Working directory, refresh_token will be stored in there if specified
     #[clap(short = 'w', long)]
     workdir: Option<PathBuf>,
@@ -52,7 +42,7 @@ fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let opt = Opt::parse();
-    let (drive_config, no_trash) = if let Some(domain_id) = opt.domain_id {
+    let (drive_config, _no_trash) = if let Some(domain_id) = opt.domain_id {
         (
             DriveConfig {
                 api_base_url: format!("https://{}.api.aliyunpds.com", domain_id),
@@ -81,6 +71,10 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     let vfs = AliyunDriveFileSystem::new(drive);
-    fuser::mount2(vfs, opt.path, &[MountOption::AutoUnmount])?;
+    let mut mount_options = vec![MountOption::AutoUnmount];
+    if opt.read_only {
+        mount_options.push(MountOption::RO);
+    }
+    fuser::mount2(vfs, opt.path, &mount_options)?;
     Ok(())
 }
