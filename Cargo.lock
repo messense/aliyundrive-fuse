@@ -18,6 +18,7 @@ dependencies = [
  "dashmap",
  "fuser",
  "futures-util",
+ "libc",
  "oneshot",
  "openssl-probe",
  "parking_lot",

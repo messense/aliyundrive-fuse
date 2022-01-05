@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
     openssl_probe::init_ssl_cert_env_vars();
 
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "aliyundrive_webdav=info");
+        env::set_var("RUST_LOG", "aliyundrive_fuse=info");
     }
     tracing_subscriber::fmt::init();
 
@@ -80,7 +80,7 @@ fn main() -> anyhow::Result<()> {
         io::Error::new(io::ErrorKind::Other, "initialize aliyundrive client failed")
     })?;
 
-    let vfs = AliyunDriveFileSystem;
+    let vfs = AliyunDriveFileSystem::new(drive);
     fuser::mount2(vfs, opt.path, &[MountOption::AutoUnmount])?;
     Ok(())
 }

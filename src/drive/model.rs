@@ -37,9 +37,9 @@ pub struct ListFileResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct GetFileByPathRequest<'a> {
+pub struct GetFileRequest<'a> {
     pub drive_id: &'a str,
-    pub file_path: &'a str,
+    pub file_id: &'a str,
 }
 
 #[derive(Debug, Clone, Serialize)]

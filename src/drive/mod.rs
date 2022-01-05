@@ -286,21 +286,12 @@ impl AliyunDrive {
         }
     }
 
-    pub fn get_by_path(&self, path: &str) -> Result<Option<AliyunFile>> {
+    pub fn get_file(&self, file_id: &str) -> Result<Option<AliyunFile>> {
         let drive_id = self.drive_id()?;
-        debug!(drive_id = %drive_id, path = %path, "get file by path");
-        if path == "/" || path.is_empty() {
-            return Ok(Some(AliyunFile::new_root()));
-        }
-        let req = GetFileByPathRequest {
-            drive_id,
-            file_path: path,
-        };
+        debug!(drive_id = %drive_id, file_id = %file_id, "get file");
+        let req = GetFileRequest { drive_id, file_id };
         let res: Result<AliyunFile> = self
-            .request(
-                format!("{}/v2/file/get_by_path", self.config.api_base_url),
-                &req,
-            )
+            .request(format!("{}/v2/file/get", self.config.api_base_url), &req)
             .and_then(|res| res.context("expect response"));
         match res {
             Ok(file) => Ok(Some(file)),
