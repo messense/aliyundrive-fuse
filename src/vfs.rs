@@ -89,7 +89,21 @@ impl AliyunDriveFileSystem {
     }
 
     fn lookup(&mut self, parent: u64, name: &OsStr) -> Result<FileAttr, Error> {
-        let parent_inode = self.inodes.get(&parent).ok_or(Error::ParentNotFound)?;
+        let mut parent_inode = self
+            .inodes
+            .get(&parent)
+            .ok_or(Error::ParentNotFound)?
+            .clone();
+        if parent_inode.children.is_empty() {
+            // Parent inode isn't loaded yet
+            debug!(parent = parent, "readdir missing parent in lookup");
+            self.readdir(parent)?;
+            parent_inode = self
+                .inodes
+                .get(&parent)
+                .ok_or(Error::ParentNotFound)?
+                .clone();
+        }
         let inode = parent_inode
             .children
             .get(name)
