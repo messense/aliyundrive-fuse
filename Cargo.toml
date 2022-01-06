@@ -37,3 +37,6 @@ libfuse = ["fuser/libfuse"]
 [profile.release]
 lto = true
 opt-level = "z"  # Optimize for size
+
+[patch.crates-io]
+fuser = { git = "https://github.com/cberner/fuser.git" }
