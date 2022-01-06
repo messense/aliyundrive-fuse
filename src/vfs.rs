@@ -8,34 +8,17 @@ use std::{collections::BTreeMap, time::Duration};
 
 use bytes::Bytes;
 use fuser::{
-    FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEntry, Request,
-    FUSE_ROOT_ID,
+    FileAttr, FileType, Filesystem, ReplyAttr, ReplyData, ReplyDirectory, ReplyEmpty, ReplyEntry,
+    ReplyOpen, Request, FUSE_ROOT_ID,
 };
 use tracing::debug;
 
 use crate::drive::{AliyunDrive, AliyunFile};
+use crate::error::Error;
+use crate::file_cache::FileCache;
 
 const TTL: Duration = Duration::from_secs(1);
 const BLOCK_SIZE: u64 = 10 * 1024 * 1024;
-
-#[derive(Debug, Clone, Copy)]
-pub enum Error {
-    NoEntry,
-    ParentNotFound,
-    ChildNotFound,
-    ApiCallFailed,
-}
-
-impl From<Error> for libc::c_int {
-    fn from(e: Error) -> Self {
-        match e {
-            Error::NoEntry => libc::ENOENT,
-            Error::ParentNotFound => libc::ENOENT,
-            Error::ChildNotFound => libc::ENOENT,
-            Error::ApiCallFailed => libc::EIO,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Inode {
@@ -58,24 +41,36 @@ impl Inode {
 
 pub struct AliyunDriveFileSystem {
     drive: AliyunDrive,
+    file_cache: FileCache,
     files: BTreeMap<u64, AliyunFile>,
     inodes: BTreeMap<u64, Inode>,
     next_inode: u64,
+    next_fh: u64,
 }
 
 impl AliyunDriveFileSystem {
     pub fn new(drive: AliyunDrive) -> Self {
+        let file_cache = FileCache::new(drive.clone());
         Self {
             drive,
+            file_cache,
             files: BTreeMap::new(),
             inodes: BTreeMap::new(),
             next_inode: 1,
+            next_fh: 2,
         }
     }
 
+    /// Next inode number
     fn next_inode(&mut self) -> u64 {
         self.next_inode += 1;
         self.next_inode
+    }
+
+    /// Next file handler
+    fn next_fh(&mut self) -> u64 {
+        self.next_fh += 1;
+        self.next_fh
     }
 
     fn init(&mut self) -> Result<(), Error> {
@@ -137,21 +132,13 @@ impl AliyunDriveFileSystem {
         Ok(entries)
     }
 
-    fn read(&mut self, ino: u64, offset: i64, size: u32) -> Result<Bytes, Error> {
+    fn read(&mut self, ino: u64, fh: u64, offset: i64, size: u32) -> Result<Bytes, Error> {
         let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
         if offset >= file.size as i64 {
             return Ok(Bytes::new());
         }
-        let download_url = self
-            .drive
-            .get_download_url(&file.id)
-            .map_err(|_| Error::ApiCallFailed)?;
         let size = std::cmp::min(size, file.size.saturating_sub(offset as u64) as u32);
-        let data = self
-            .drive
-            .download(&download_url, offset as _, size as _)
-            .map_err(|_| Error::ApiCallFailed)?;
-        Ok(data)
+        self.file_cache.read(fh, offset, size)
     }
 }
 
@@ -212,19 +199,45 @@ impl Filesystem for AliyunDriveFileSystem {
         }
     }
 
+    fn open(&mut self, _req: &Request<'_>, ino: u64, _flags: i32, reply: ReplyOpen) {
+        debug!(inode = ino, "open file");
+        if let Some((file_id, file_size)) = self.files.get(&ino).map(|f| (f.id.clone(), f.size)) {
+            let fh = self.next_fh();
+            self.file_cache.open(fh, file_id, file_size);
+            reply.opened(fh, 0);
+        } else {
+            reply.error(libc::ENOENT);
+        }
+    }
+
+    fn release(
+        &mut self,
+        _req: &Request<'_>,
+        ino: u64,
+        fh: u64,
+        _flags: i32,
+        _lock_owner: Option<u64>,
+        _flush: bool,
+        reply: ReplyEmpty,
+    ) {
+        debug!(inode = ino, fh = fh, "release file");
+        self.file_cache.release(fh);
+        reply.ok();
+    }
+
     fn read(
         &mut self,
         _req: &Request<'_>,
         ino: u64,
-        _fh: u64,
+        fh: u64,
         offset: i64,
         size: u32,
         _flags: i32,
         _lock_owner: Option<u64>,
         reply: ReplyData,
     ) {
-        debug!(inode = ino, offset = offset, size = size, "read");
-        match self.read(ino, offset, size) {
+        debug!(inode = ino, fh = fh, offset = offset, size = size, "read");
+        match self.read(ino, fh, offset, size) {
             Ok(data) => reply.data(&data),
             Err(e) => reply.error(e.into()),
         }

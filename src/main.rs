@@ -7,6 +7,8 @@ use drive::{AliyunDrive, DriveConfig};
 use vfs::AliyunDriveFileSystem;
 
 mod drive;
+mod error;
+mod file_cache;
 mod vfs;
 
 #[derive(Parser, Debug)]
