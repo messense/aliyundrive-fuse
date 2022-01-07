@@ -13,12 +13,9 @@ jobs:
       PKG_CONFIG_PATH: /usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
     steps:
       - uses: actions/checkout@v2
-      - name: Install packages
+      - name: Install macfuse
         run: |
           brew install macfuse
-      - name: Start fuse
-        run: |
-          /Library/Filesystems/macfuse.fs/Contents/Resources/load_macfuse
       - uses: actions/setup-python@v2
         with:
           python-version: 3.9
