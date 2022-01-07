@@ -63,13 +63,13 @@ impl AliyunDriveFileSystem {
 
     /// Next inode number
     fn next_inode(&mut self) -> u64 {
-        self.next_inode += 1;
+        self.next_inode = self.next_inode.wrapping_add(1);
         self.next_inode
     }
 
     /// Next file handler
     fn next_fh(&mut self) -> u64 {
-        self.next_fh += 1;
+        self.next_fh = self.next_fh.wrapping_add(1);
         self.next_fh
     }
 
