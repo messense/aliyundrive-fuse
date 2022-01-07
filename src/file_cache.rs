@@ -71,6 +71,13 @@ impl FileCache {
             buffer: chunk.clone(),
         };
         self.cache.insert(fh, new_cached);
+
+        // chunk size maybe less than size
+        let size = if chunk.len() >= size as usize {
+            size as usize
+        } else {
+            chunk.len()
+        };
         Ok(chunk.slice(..size as usize))
     }
 
