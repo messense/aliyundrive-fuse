@@ -134,6 +134,7 @@ impl AliyunDriveFileSystem {
 
     fn read(&mut self, ino: u64, fh: u64, offset: i64, size: u32) -> Result<Bytes, Error> {
         let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
+        debug!(inode = ino, name = %file.name, fh = fh, offset = offset, size = size, "read");
         if offset >= file.size as i64 {
             return Ok(Bytes::new());
         }
@@ -164,10 +165,11 @@ impl Filesystem for AliyunDriveFileSystem {
     }
 
     fn getattr(&mut self, _req: &Request<'_>, ino: u64, reply: ReplyAttr) {
-        debug!(inode = ino, "getattr");
         if let Some(file) = self.files.get(&ino) {
+            debug!(inode = ino, name = %file.name, "getattr");
             reply.attr(&TTL, &file.to_file_attr(ino))
         } else {
+            debug!(inode = ino, "getattr");
             reply.error(libc::ENOENT);
         }
     }
@@ -200,12 +202,17 @@ impl Filesystem for AliyunDriveFileSystem {
     }
 
     fn open(&mut self, _req: &Request<'_>, ino: u64, _flags: i32, reply: ReplyOpen) {
-        debug!(inode = ino, "open file");
-        if let Some((file_id, file_size)) = self.files.get(&ino).map(|f| (f.id.clone(), f.size)) {
+        if let Some((file_id, file_name, file_size)) = self
+            .files
+            .get(&ino)
+            .map(|f| (f.id.clone(), f.name.clone(), f.size))
+        {
+            debug!(inode = ino, name = %file_name, "open file");
             let fh = self.next_fh();
             self.file_cache.open(fh, file_id, file_size);
             reply.opened(fh, 0);
         } else {
+            debug!(inode = ino, "open file");
             reply.error(libc::ENOENT);
         }
     }
@@ -236,7 +243,6 @@ impl Filesystem for AliyunDriveFileSystem {
         _lock_owner: Option<u64>,
         reply: ReplyData,
     ) {
-        debug!(inode = ino, fh = fh, offset = offset, size = size, "read");
         match self.read(ino, fh, offset, size) {
             Ok(data) => reply.data(&data),
             Err(e) => reply.error(e.into()),
