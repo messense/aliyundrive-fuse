@@ -119,14 +119,33 @@ impl AliyunDriveFileSystem {
             .drive
             .list_all(parent_file_id)
             .map_err(|_| Error::ApiCallFailed)?;
+
+        let mut to_remove = inode.children.keys().cloned().collect::<Vec<_>>();
         for file in &files {
-            let new_inode = self.next_inode();
-            inode.add_child(OsString::from(file.name.clone()), new_inode);
-            self.files.insert(new_inode, file.clone());
-            self.inodes
-                .entry(new_inode)
-                .or_insert_with(|| Inode::new(ino));
-            entries.push((new_inode, file.r#type.into(), file.name.clone()));
+            let name = OsString::from(file.name.clone());
+            if let Some(ino_exist) = inode.children.get(&name) {
+                // file already exists
+                to_remove.retain(|n| n != &name);
+                entries.push((*ino_exist, file.r#type.into(), file.name.clone()));
+            } else {
+                let new_inode = self.next_inode();
+                inode.add_child(name, new_inode);
+                self.files.insert(new_inode, file.clone());
+                self.inodes
+                    .entry(new_inode)
+                    .or_insert_with(|| Inode::new(ino));
+                entries.push((new_inode, file.r#type.into(), file.name.clone()));
+            }
+        }
+
+        if !to_remove.is_empty() {
+            for name in to_remove {
+                if let Some(ino_remove) = inode.children.remove(&name) {
+                    debug!(inode = ino_remove, name = %Path::new(&name).display(), "remove outdated inode");
+                    self.files.remove(&ino_remove);
+                    self.inodes.remove(&ino_remove);
+                }
+            }
         }
         self.inodes.insert(ino, inode);
         Ok(entries)
