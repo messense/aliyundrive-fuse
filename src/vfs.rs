@@ -92,7 +92,7 @@ impl AliyunDriveFileSystem {
         if parent_inode.children.is_empty() {
             // Parent inode isn't loaded yet
             debug!(parent = parent, "readdir missing parent in lookup");
-            self.readdir(parent)?;
+            self.readdir(parent, 0)?;
             parent_inode = self
                 .inodes
                 .get(&parent)
@@ -107,47 +107,59 @@ impl AliyunDriveFileSystem {
         Ok(file.to_file_attr(*inode))
     }
 
-    fn readdir(&mut self, ino: u64) -> Result<Vec<(u64, FileType, String)>, Error> {
-        let mut entries = vec![(ino, FileType::Directory, ".".to_string())];
-
+    fn readdir(&mut self, ino: u64, offset: i64) -> Result<Vec<(u64, FileType, String)>, Error> {
+        let mut entries = Vec::new();
         let mut inode = self.inodes.get(&ino).ok_or(Error::NoEntry)?.clone();
-        entries.push((inode.parent, FileType::Directory, String::from("..")));
 
-        let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
-        let parent_file_id = &file.id;
-        let files = self
-            .drive
-            .list_all(parent_file_id)
-            .map_err(|_| Error::ApiCallFailed)?;
+        if offset == 0 {
+            entries.push((ino, FileType::Directory, ".".to_string()));
+            entries.push((inode.parent, FileType::Directory, String::from("..")));
 
-        let mut to_remove = inode.children.keys().cloned().collect::<Vec<_>>();
-        for file in &files {
-            let name = OsString::from(file.name.clone());
-            if let Some(ino_exist) = inode.children.get(&name) {
-                // file already exists
-                to_remove.retain(|n| n != &name);
-                entries.push((*ino_exist, file.r#type.into(), file.name.clone()));
-            } else {
-                let new_inode = self.next_inode();
-                inode.add_child(name, new_inode);
-                self.files.insert(new_inode, file.clone());
-                self.inodes
-                    .entry(new_inode)
-                    .or_insert_with(|| Inode::new(ino));
-                entries.push((new_inode, file.r#type.into(), file.name.clone()));
-            }
-        }
+            let file = self.files.get(&ino).ok_or(Error::NoEntry)?;
+            let parent_file_id = &file.id;
+            let files = self
+                .drive
+                .list_all(parent_file_id)
+                .map_err(|_| Error::ApiCallFailed)?;
+            debug!(
+                inode = ino,
+                "total {} files in directory {}",
+                files.len(),
+                file.name
+            );
 
-        if !to_remove.is_empty() {
-            for name in to_remove {
-                if let Some(ino_remove) = inode.children.remove(&name) {
-                    debug!(inode = ino_remove, name = %Path::new(&name).display(), "remove outdated inode");
-                    self.files.remove(&ino_remove);
-                    self.inodes.remove(&ino_remove);
+            let mut to_remove = inode.children.keys().cloned().collect::<Vec<_>>();
+            for file in &files {
+                let name = OsString::from(file.name.clone());
+                if inode.children.contains_key(&name) {
+                    // file already exists
+                    to_remove.retain(|n| n != &name);
+                } else {
+                    let new_inode = self.next_inode();
+                    inode.add_child(name, new_inode);
+                    self.files.insert(new_inode, file.clone());
+                    self.inodes
+                        .entry(new_inode)
+                        .or_insert_with(|| Inode::new(ino));
                 }
             }
+
+            if !to_remove.is_empty() {
+                for name in to_remove {
+                    if let Some(ino_remove) = inode.children.remove(&name) {
+                        debug!(inode = ino_remove, name = %Path::new(&name).display(), "remove outdated inode");
+                        self.files.remove(&ino_remove);
+                        self.inodes.remove(&ino_remove);
+                    }
+                }
+            }
+            self.inodes.insert(ino, inode.clone());
         }
-        self.inodes.insert(ino, inode);
+
+        for child_ino in inode.children.values().skip(offset as usize).take(16) {
+            let file = self.files.get(child_ino).ok_or(Error::ChildNotFound)?;
+            entries.push((*child_ino, file.r#type.into(), file.name.clone()));
+        }
         Ok(entries)
     }
 
@@ -202,14 +214,14 @@ impl Filesystem for AliyunDriveFileSystem {
         mut reply: ReplyDirectory,
     ) {
         debug!(inode = ino, offset = offset, "readdir");
-        match self.readdir(ino) {
+        match self.readdir(ino, offset) {
             Ok(entries) => {
                 // Offset of 0 means no offset.
                 // Non-zero offset means the passed offset has already been seen,
                 // and we should start after it.
-                let to_skip = if offset == 0 { 0 } else { offset + 1 } as usize;
-                for (i, (ino, kind, name)) in entries.into_iter().enumerate().skip(to_skip) {
-                    let buffer_full = reply.add(ino, i as i64, kind, name);
+                let offset_add = if offset == 0 { 0 } else { offset + 1 };
+                for (i, (ino, kind, name)) in entries.into_iter().enumerate() {
+                    let buffer_full = reply.add(ino, offset_add + i as i64, kind, name);
                     if buffer_full {
                         break;
                     }
