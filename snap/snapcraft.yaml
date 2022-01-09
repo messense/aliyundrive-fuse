@@ -11,7 +11,7 @@ base: core20
 
 build-packages:
   - pkg-config
-  - libfuse-dev
+  - libfuse3-dev
 
 architectures:
   - build-on: amd64
