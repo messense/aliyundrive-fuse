@@ -1,0 +1,31 @@
+name: aliyundrive-fuse
+version: '0.1.0'
+summary: 阿里云盘 FUSE
+description: |
+  阿里云盘 FUSE 磁盘挂载
+
+grade: stable # must be 'stable' to release into candidate/stable channels
+confinement: strict # use 'strict' once you have the right plugs and slots
+
+base: core20
+
+build-packages:
+  - pkg-config
+  - libfuse-dev
+
+architectures:
+  - build-on: amd64
+  - build-on: i386
+  - build-on: arm64
+  - build-on: armhf
+
+parts:
+  aliyundrive-fuse:
+    plugin: rust
+    source: .
+    stage-packages:
+      - fuse3
+
+apps:
+  aliyundrive-fuse:
+    command: bin/aliyundrive-fuse

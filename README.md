@@ -18,8 +18,8 @@
 
 * macOS 需要先安装 [macfuse](https://osxfuse.github.io/)
 * Linux 需要先安装 fuse
-  * Debian 系如 Ubuntu: `apt-get install -y fuse`
-  * RedHat 系如 CentOS: `yum install -y fuse`
+  * Debian 系如 Ubuntu: `apt-get install -y fuse3`
+  * RedHat 系如 CentOS: `yum install -y fuse3`
 
 可以从 [GitHub Releases](https://github.com/messense/aliyundrive-fuse/releases) 页面下载预先构建的二进制包， 也可以使用 pip 从 PyPI 下载:
 
