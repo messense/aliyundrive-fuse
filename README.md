@@ -34,6 +34,24 @@ pip install aliyundrive-fuse
 sudo snap install aliyundrive-fuse
 ```
 
+### OpenWrt 路由器
+
+[GitHub Releases](https://github.com/messense/aliyundrive-fuse/releases) 中有预编译的 ipk 文件， 目前提供了
+aarch64/arm/x86_64/i686 等架构的版本，可以下载后使用 opkg 安装，以 nanopi r4s 为例：
+
+```bash
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.2/aliyundrive-fuse_0.1.2_aarch64_generic.ipk
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.2/luci-app-aliyundrive-fuse_0.1.2_all.ipk
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.2/luci-i18n-aliyundrive-fuse-zh-cn_0.1.2-1_all.ipk
+opkg install aliyundrive-fuse_0.1.2_aarch64_generic.ipk
+opkg install luci-app-aliyundrive-fuse_0.1.2_all.ipk
+opkg install luci-i18n-aliyundrive-fuse-zh-cn_0.1.2-1_all.ipk
+```
+
+其它 CPU 架构的路由器可在 [GitHub Releases](https://github.com/messense/aliyundrive-fuse/releases) 页面中查找对应的架构的主程序 ipk 文件下载安装。
+
+> Tips: 不清楚 CPU 架构类型可通过运行 `opkg print-architecture` 命令查询。
+
 ## 命令行用法
 
 ```bash
