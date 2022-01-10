@@ -37,3 +37,16 @@ libfuse = ["fuser/libfuse"]
 [profile.release]
 lto = true
 opt-level = "z"  # Optimize for size
+
+[package.metadata.deb]
+maintainer = "messense <messense@icloud.com>"
+copyright = "2021-present, messense <messense@icloud.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+阿里云盘 FUSE 磁盘挂载"""
+depends = "fuse3"
+section = "utility"
+priority = "optional"
+assets = [
+    ["target/release/aliyundrive-fuse", "usr/bin/", "755"],
+]
