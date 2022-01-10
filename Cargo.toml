@@ -50,3 +50,12 @@ priority = "optional"
 assets = [
     ["target/release/aliyundrive-fuse", "usr/bin/", "755"],
 ]
+
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/aliyundrive-fuse", dest = "/usr/bin/aliyundrive-fuse", mode = "0755" },
+    { source = "LICENSE", dest = "/usr/share/doc/aliyundrive-fuse/LICENSE", doc = true, mode = "0644" },
+]
+
+[package.metadata.generate-rpm.requires]
+fuse3 = "*"
