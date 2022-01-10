@@ -89,11 +89,6 @@ jobs:
         uses: Swatinem/rust-cache@v1
         with:
           key: ${{ matrix.platform.target }}
-      - name: Remove cached deb and RPM packages
-        if: matrix.platform.deb
-        run: |
-          rm -rf target/${{ matrix.platform.target }}/debian
-          rm -rf target/${{ matrix.platform.target }}/generate-rpm
       - name: Build wheels - manylinux
         uses: messense/maturin-action@main
         with:

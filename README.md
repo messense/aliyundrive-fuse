@@ -37,9 +37,6 @@ sudo snap install aliyundrive-fuse
 ## 命令行用法
 
 ```bash
-aliyundrive-fuse 0.1.0
-FUSE for AliyunDrive
-
 USAGE:
     aliyundrive-fuse [OPTIONS] --refresh-token <REFRESH_TOKEN> <PATH>
 
@@ -57,8 +54,8 @@ OPTIONS:
 比如将磁盘挂载到 `/mnt/aliyundrive` 目录：
 
 ```bash
-mkdir -p /mnt/aliyundrive /var/run/aliyundrive
-aliyundrive-fuse -r your-refresh-token -w /var/run/aliyundrive /mnt/aliyundrive
+mkdir -p /mnt/aliyundrive /var/run/aliyundrive-fuse
+aliyundrive-fuse -r your-refresh-token -w /var/run/aliyundrive-fuse /mnt/aliyundrive
 ```
 
 ## License
