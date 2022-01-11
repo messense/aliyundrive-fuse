@@ -29,6 +29,9 @@ struct Opt {
     /// Allow other users to access the drive
     #[clap(long)]
     allow_other: bool,
+    /// Read/download buffer size in bytes, defaults to 10MB
+    #[clap(short = 'S', long, default_value = "10485760")]
+    read_buffer_size: usize,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -60,7 +63,7 @@ fn main() -> anyhow::Result<()> {
         io::Error::new(io::ErrorKind::Other, "initialize aliyundrive client failed")
     })?;
 
-    let vfs = AliyunDriveFileSystem::new(drive);
+    let vfs = AliyunDriveFileSystem::new(drive, opt.read_buffer_size);
     let mut mount_options = vec![MountOption::AutoUnmount, MountOption::NoAtime];
     // read only for now
     mount_options.push(MountOption::RO);

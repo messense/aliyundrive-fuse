@@ -19,6 +19,7 @@ start_service() {
       local refresh_token=$(uci_get_by_type default refresh_token)
       local domain_id=$(uci_get_by_type default domain_id)
       local mount_point=$(uci_get_by_type default mount_point)
+      local read_buf_size=$(uci_get_by_type server read_buffer_size 10485760)
 
       local extra_options=""
 
@@ -28,7 +29,7 @@ start_service() {
 
       mkdir -p "$mount_point"
       procd_open_instance
-      procd_set_param command /bin/sh -c "/usr/bin/$NAME $extra_options --workdir /var/run/$NAME $mount_point >>/var/log/$NAME.log 2>&1"
+      procd_set_param command /bin/sh -c "/usr/bin/$NAME $extra_options -S $read_buf_size --workdir /var/run/$NAME $mount_point >>/var/log/$NAME.log 2>&1"
       procd_set_param pidfile /var/run/$NAME.pid
       procd_set_param env REFRESH_TOKEN="$refresh_token"
       case $(uci_get_by_type default debug) in

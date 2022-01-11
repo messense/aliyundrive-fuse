@@ -16,6 +16,9 @@ msgstr "Refresh Token"
 msgid "Mount Point"
 msgstr "挂载点"
 
+msgid "Read Buffer Size"
+msgstr "下载缓冲大小(bytes)"
+
 msgid "Collecting data..."
 msgstr "获取数据中..."
 

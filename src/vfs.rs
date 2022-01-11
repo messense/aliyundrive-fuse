@@ -49,8 +49,8 @@ pub struct AliyunDriveFileSystem {
 }
 
 impl AliyunDriveFileSystem {
-    pub fn new(drive: AliyunDrive) -> Self {
-        let file_cache = FileCache::new(drive.clone());
+    pub fn new(drive: AliyunDrive, read_buffer_size: usize) -> Self {
+        let file_cache = FileCache::new(drive.clone(), read_buffer_size);
         Self {
             drive,
             file_cache,

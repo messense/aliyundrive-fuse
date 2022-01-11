@@ -19,6 +19,10 @@ refresh_token.description = translate("<a href=\"https://github.com/messense/ali
 mount_point = e:option(Value, "mount_point", translate("Mount Point"))
 mount_point.default = "/mnt/aliyundrive"
 
+read_buffer_size = e:option(Value, "read_buffer_size", translate("Read Buffer Size"))
+read_buffer_size.default = "10485760"
+read_buffer_size.datatype = "uinteger"
+
 domain_id = e:option(Value, "domain_id", translate("Domain ID"))
 domain_id.description = translate("Input domain_id option will use <a href=\"https://www.aliyun.com/product/storage/pds\" target=\"_blank\">Aliyun PDS</a> instead of <a href=\"https://www.aliyundrive.com\" target=\"_blank\">AliyunDrive</a>")
 

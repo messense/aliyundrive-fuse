@@ -6,8 +6,6 @@ use tracing::debug;
 use crate::error::Error;
 use crate::AliyunDrive;
 
-const CHUNK_SIZE: usize = 10 * 1024 * 1024;
-
 #[derive(Debug)]
 struct CachedFile {
     file_id: String,
@@ -19,20 +17,25 @@ struct CachedFile {
 #[derive(Debug)]
 pub struct FileCache {
     drive: AliyunDrive,
+    read_buffer_size: usize,
     // file handle -> cached file
     cache: BTreeMap<u64, CachedFile>,
 }
 
 impl FileCache {
-    pub fn new(drive: AliyunDrive) -> Self {
+    pub fn new(drive: AliyunDrive, read_buffer_size: usize) -> Self {
         Self {
             drive,
+            read_buffer_size,
             cache: BTreeMap::new(),
         }
     }
 
     fn read_chunk(&self, file_id: &str, file_size: u64, offset: i64) -> Result<Bytes, Error> {
-        let size = std::cmp::min(CHUNK_SIZE, file_size.saturating_sub(offset as u64) as usize);
+        let size = std::cmp::min(
+            self.read_buffer_size,
+            file_size.saturating_sub(offset as u64) as usize,
+        );
         let download_url = self
             .drive
             .get_download_url(file_id)
