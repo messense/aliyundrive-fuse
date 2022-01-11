@@ -1,0 +1,15 @@
+[Unit]
+Description=AliyunDrive FUSE
+After=network.target
+
+[Service]
+Type=simple
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/run/aliyundrive-fuse -p /mnt/aliyundrive
+Environment="REFRESH_TOKEN="
+ExecStart=/usr/bin/aliyundrive-fuse --allow-other -w /var/run/aliyundrive-fuse /mnt/aliyundrive
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
