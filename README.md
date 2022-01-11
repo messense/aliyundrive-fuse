@@ -62,11 +62,13 @@ ARGS:
     <PATH>    Mount point
 
 OPTIONS:
-        --domain-id <DOMAIN_ID>            Aliyun PDS domain id
-    -h, --help                             Print help information
-    -r, --refresh-token <REFRESH_TOKEN>    Aliyun drive refresh token [env: REFRESH_TOKEN=]
-    -V, --version                          Print version information
-    -w, --workdir <WORKDIR>                Working directory, refresh_token will be stored in there if specified
+        --allow-other                            Allow other users to access the drive
+        --domain-id <DOMAIN_ID>                  Aliyun PDS domain id
+    -h, --help                                   Print help information
+    -r, --refresh-token <REFRESH_TOKEN>          Aliyun drive refresh token [env: REFRESH_TOKEN=]
+    -S, --read-buffer-size <READ_BUFFER_SIZE>    Read/download buffer size in bytes, defaults to 10MB [default: 10485760]
+    -V, --version                                Print version information
+    -w, --workdir <WORKDIR>                      Working directory, refresh_token will be stored in there if specified
 ```
 
 比如将磁盘挂载到 `/mnt/aliyundrive` 目录：
