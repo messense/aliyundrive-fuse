@@ -26,6 +26,9 @@ struct Opt {
     /// Aliyun PDS domain id
     #[clap(long)]
     domain_id: Option<String>,
+    /// Allow other users to access the drive
+    #[clap(long)]
+    allow_other: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -61,8 +64,11 @@ fn main() -> anyhow::Result<()> {
     let mut mount_options = vec![MountOption::AutoUnmount, MountOption::NoAtime];
     // read only for now
     mount_options.push(MountOption::RO);
+    if opt.allow_other {
+        mount_options.push(MountOption::AllowOther);
+    }
     if cfg!(target_os = "macos") {
-        mount_options.push(MountOption::CUSTOM("-o local".to_string()));
+        mount_options.push(MountOption::CUSTOM("local".to_string()));
     }
     fuser::mount2(vfs, opt.path, &mount_options)?;
     Ok(())
