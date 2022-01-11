@@ -40,12 +40,12 @@ sudo snap install aliyundrive-fuse
 aarch64/arm/x86_64/i686 等架构的版本，可以下载后使用 opkg 安装，以 nanopi r4s 为例：
 
 ```bash
-wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.3/aliyundrive-fuse_0.1.3_aarch64_generic.ipk
-wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.3/luci-app-aliyundrive-fuse_0.1.3_all.ipk
-wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.3/luci-i18n-aliyundrive-fuse-zh-cn_0.1.3-1_all.ipk
-opkg install aliyundrive-fuse_0.1.3_aarch64_generic.ipk
-opkg install luci-app-aliyundrive-fuse_0.1.3_all.ipk
-opkg install luci-i18n-aliyundrive-fuse-zh-cn_0.1.3-1_all.ipk
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.4/aliyundrive-fuse_0.1.4_aarch64_generic.ipk
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.4/luci-app-aliyundrive-fuse_0.1.4_all.ipk
+wget https://github.com/messense/aliyundrive-fuse/releases/download/v0.1.4/luci-i18n-aliyundrive-fuse-zh-cn_0.1.4-1_all.ipk
+opkg install aliyundrive-fuse_0.1.4_aarch64_generic.ipk
+opkg install luci-app-aliyundrive-fuse_0.1.4_all.ipk
+opkg install luci-i18n-aliyundrive-fuse-zh-cn_0.1.4-1_all.ipk
 ```
 
 其它 CPU 架构的路由器可在 [GitHub Releases](https://github.com/messense/aliyundrive-fuse/releases) 页面中查找对应的架构的主程序 ipk 文件下载安装。
