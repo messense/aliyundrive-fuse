@@ -78,6 +78,24 @@ mkdir -p /mnt/aliyundrive /var/run/aliyundrive-fuse
 aliyundrive-fuse -r your-refresh-token -w /var/run/aliyundrive-fuse /mnt/aliyundrive
 ```
 
+## Emby/Jellyfin
+
+如果是直接运行在系统上的 Emby/Jellyfin，则可以直接在其控制台添加媒体库的时候选择阿里云盘对应的挂载路径中的文件夹即可；
+如果是 Docker 运行的 Emby/Jellyfin，则需要将阿里云盘挂载路径也挂载到 Docker 容器中，假设阿里云盘挂载路径为 `/mnt/aliyundrive`，
+以 Jellyfin 为例（假设 Jellyfin 工作路径为 `/root/jellyfin`）将云盘挂载到容器 `/media` 路径：
+
+```bash
+docker run -d --name jellyfin \
+  -v /root/jellyfin/config:/config \
+  -v /root/jellyfin/cache:/cache \
+  -v /mnt/aliyundrive:/media \
+  -p 8096:8096 \
+  --device=/dev/dri/renderD128 \
+  --device /dev/dri/card0:/dev/dri/card0 \
+  --restart unless-stopped \
+  jellyfin/jellyfin
+```
+
 ## License
 
 This work is released under the MIT license. A copy of the license is provided in the [LICENSE](./LICENSE) file.
