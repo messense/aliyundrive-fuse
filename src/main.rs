@@ -63,6 +63,7 @@ fn main() -> anyhow::Result<()> {
         io::Error::new(io::ErrorKind::Other, "initialize aliyundrive client failed")
     })?;
 
+    let _nick_name = drive.nick_name.clone();
     let vfs = AliyunDriveFileSystem::new(drive, opt.read_buffer_size);
     let mut mount_options = vec![MountOption::AutoUnmount, MountOption::NoAtime];
     // read only for now
@@ -72,6 +73,13 @@ fn main() -> anyhow::Result<()> {
     }
     if cfg!(target_os = "macos") {
         mount_options.push(MountOption::CUSTOM("local".to_string()));
+        mount_options.push(MountOption::CUSTOM("noappledouble".to_string()));
+        let volname = if let Some(nick_name) = _nick_name {
+            format!("volname=阿里云盘({})", nick_name)
+        } else {
+            "volname=阿里云盘".to_string()
+        };
+        mount_options.push(MountOption::CUSTOM(volname));
     }
     fuser::mount2(vfs, opt.path, &mount_options)?;
     Ok(())

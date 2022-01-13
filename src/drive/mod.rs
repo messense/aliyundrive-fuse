@@ -45,6 +45,7 @@ pub struct AliyunDrive {
     client: reqwest::blocking::Client,
     credentials: Arc<RwLock<Credentials>>,
     drive_id: Option<String>,
+    pub nick_name: Option<String>,
 }
 
 impl AliyunDrive {
@@ -71,6 +72,7 @@ impl AliyunDrive {
             client,
             credentials: Arc::new(RwLock::new(credentials)),
             drive_id: None,
+            nick_name: None,
         };
 
         let (tx, rx) = oneshot::channel();
@@ -87,13 +89,13 @@ impl AliyunDrive {
                 Ok(res) => {
                     // token usually expires in 7200s, refresh earlier
                     delay_seconds = res.expires_in - 200;
-                    if tx.send(res.default_drive_id).is_err() {
+                    if tx.send((res.default_drive_id, res.nick_name)).is_err() {
                         error!("send default drive id failed");
                     }
                 }
                 Err(err) => {
                     error!("refresh token failed: {}", err);
-                    tx.send(String::new()).unwrap();
+                    tx.send((String::new(), String::new())).unwrap();
                 }
             }
             loop {
@@ -104,12 +106,13 @@ impl AliyunDrive {
             }
         });
 
-        let drive_id = rx.recv()?;
+        let (drive_id, nick_name) = rx.recv()?;
         if drive_id.is_empty() {
             bail!("get default drive id failed");
         }
         info!(drive_id = %drive_id, "found default drive");
         drive.drive_id = Some(drive_id);
+        drive.nick_name = Some(nick_name);
 
         Ok(drive)
     }
