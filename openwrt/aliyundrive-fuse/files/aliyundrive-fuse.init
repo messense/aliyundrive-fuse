@@ -19,7 +19,7 @@ start_service() {
       local refresh_token=$(uci_get_by_type default refresh_token)
       local domain_id=$(uci_get_by_type default domain_id)
       local mount_point=$(uci_get_by_type default mount_point)
-      local read_buf_size=$(uci_get_by_type server read_buffer_size 10485760)
+      local read_buf_size=$(uci_get_by_type default read_buffer_size 10485760)
 
       local extra_options=""
 
