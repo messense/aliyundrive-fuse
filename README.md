@@ -2,6 +2,7 @@
 
 [![GitHub Actions](https://github.com/messense/aliyundrive-fuse/workflows/CI/badge.svg)](https://github.com/messense/aliyundrive-fuse/actions?query=workflow%3ACI)
 [![PyPI](https://img.shields.io/pypi/v/aliyundrive-fuse.svg)](https://pypi.org/project/aliyundrive-fuse)
+[![Docker Image](https://img.shields.io/docker/pulls/messense/aliyundrive-fuse.svg?maxAge=2592000)](https://hub.docker.com/r/messense/aliyundrive-fuse/)
 [![aliyundrive-fuse](https://snapcraft.io/aliyundrive-fuse/badge.svg)](https://snapcraft.io/aliyundrive-fuse)
 [![Crates.io](https://img.shields.io/crates/v/aliyundrive-fuse.svg)](https://crates.io/crates/aliyundrive-fuse)
 
