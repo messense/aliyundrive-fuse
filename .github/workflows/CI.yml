@@ -66,3 +66,11 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
+
+  spellcheck:
+    name: spellcheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: codespell-project/actions-codespell@master
