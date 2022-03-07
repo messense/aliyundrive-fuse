@@ -156,7 +156,7 @@ impl AliyunDriveFileSystem {
             self.inodes.insert(ino, inode.clone());
         }
 
-        for child_ino in inode.children.values().skip(offset as usize).take(16) {
+        for child_ino in inode.children.values().skip(offset as usize) {
             let file = self.files.get(child_ino).ok_or(Error::ChildNotFound)?;
             entries.push((*child_ino, file.r#type.into(), file.name.clone()));
         }
