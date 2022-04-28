@@ -18,7 +18,7 @@ use crate::error::Error;
 use crate::file_cache::FileCache;
 
 const TTL: Duration = Duration::from_secs(1);
-const BLOCK_SIZE: u64 = 4096;
+const BLOCK_SIZE: u64 = 4194304;
 
 #[derive(Debug, Clone)]
 pub struct Inode {
