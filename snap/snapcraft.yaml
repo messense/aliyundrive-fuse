@@ -1,5 +1,5 @@
 name: aliyundrive-fuse
-version: '0.1.11'
+version: '0.1.12'
 summary: 阿里云盘 FUSE
 description: |
   阿里云盘 FUSE 磁盘挂载
