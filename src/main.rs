@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
     } else {
         DriveConfig {
             api_base_url: "https://api.aliyundrive.com".to_string(),
-            refresh_token_url: "https://websv.aliyundrive.com/token/refresh".to_string(),
+            refresh_token_url: "https://api.aliyundrive.com/token/refresh".to_string(),
             workdir: opt.workdir,
             app_id: None,
         }
