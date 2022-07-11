@@ -19,7 +19,7 @@ libc = "0.2"
 oneshot = { version = "0.1", default-features = false, features = ["std"] }
 openssl-probe = { version = "0.1", optional = true }
 parking_lot = "0.12"
-reqwest = { version = "0.11", default-features = false, features = ["json", "gzip", "blocking"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "gzip", "blocking", "socks"] }
 serde = { version = "1.0", features = ["derive"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
 tracing = "0.1"
