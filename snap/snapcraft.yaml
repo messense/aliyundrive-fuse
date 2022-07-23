@@ -29,3 +29,4 @@ parts:
 apps:
   aliyundrive-fuse:
     command: bin/aliyundrive-fuse
+    plugs: [network]
