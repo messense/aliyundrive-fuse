@@ -12,25 +12,25 @@ mod file_cache;
 mod vfs;
 
 #[derive(Parser, Debug)]
-#[clap(name = "aliyundrive-fuse", about, version, author)]
+#[command(name = "aliyundrive-fuse", about, version, author)]
 struct Opt {
     /// Mount point
-    #[clap(parse(from_os_str))]
+    #[arg(long)]
     path: PathBuf,
     /// Aliyun drive refresh token
-    #[clap(short, long, env = "REFRESH_TOKEN")]
+    #[arg(short, long, env = "REFRESH_TOKEN")]
     refresh_token: String,
     /// Working directory, refresh_token will be stored in there if specified
-    #[clap(short = 'w', long)]
+    #[arg(short = 'w', long)]
     workdir: Option<PathBuf>,
     /// Aliyun PDS domain id
-    #[clap(long)]
+    #[arg(long)]
     domain_id: Option<String>,
     /// Allow other users to access the drive
-    #[clap(long)]
+    #[arg(long)]
     allow_other: bool,
     /// Read/download buffer size in bytes, defaults to 10MB
-    #[clap(short = 'S', long, default_value = "10485760")]
+    #[arg(short = 'S', long, default_value = "10485760")]
     read_buffer_size: usize,
 }
 
