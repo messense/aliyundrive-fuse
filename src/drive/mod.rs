@@ -319,7 +319,7 @@ impl AliyunDrive {
             order_direction: "DESC",
             marker,
         };
-        self.request(format!("{}/v2/file/list", self.config.api_base_url), &req)
+        self.request(format!("{}/adrive/v3/file/list", self.config.api_base_url), &req)
             .and_then(|res| res.context("expect response"))
     }
 
